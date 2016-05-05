@@ -4,3 +4,4 @@ build
 coverage
 .tern-port
 npm-debug.log
+.idea
