@@ -18,7 +18,7 @@ var prefix = typeof Object.create !== 'function' ? '~' : false;
  * Representation of a single EventEmitter function.
  * 一个单一的事件监听函数的单元
  *
- * @param {Function} fn Event handler to be called. 
+ * @param {Function} fn Event handler to be called. 回调函数
  * @param {Mixed} context Context for function execution. 函数执行上下文
  * @param {Boolean} [once=false] Only emit once 是否执行一次的标志位
  * @api private
@@ -31,6 +31,7 @@ function EE(fn, context, once) {
 
 /**
  * Minimal EventEmitter interface that is molded against the Node.js
+ * 最小的事件模型接口
  * EventEmitter interface.
  *
  * @constructor
@@ -40,6 +41,7 @@ function EventEmitter() { /* Nothing to set */
 }
 
 /**
+ * 通过名字保存事件监听器
  * Hold the assigned EventEmitters by name.
  *
  * @type {Object}
@@ -49,7 +51,7 @@ EventEmitter.prototype._events = undefined;
 
 /**
  * Return an array listing the events for which the emitter has registered
- * 返回已经注册过的时间名称列表
+ * 返回已经注册过的事件名称列表
  * listeners.
  *
  * @returns {Array}
@@ -101,9 +103,9 @@ EventEmitter.prototype.listeners = function listeners(event, exists) {
  * Emit an event to all registered event listeners.
  * 触发已经注册的事件监听函数
  *
- * @param {String} event The name of the event.
- * @returns {Boolean} Indication if we've emitted an event.
- * @api public
+ * @param {String} event The name of the event. 事件名
+ * @returns {Boolean} Indication if we've emitted an event. 如果触发事件成功,则返回true,否则返回false
+ * @api public 公有API
  */
 EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
     var evt = prefix ? prefix + event : event;
@@ -172,22 +174,26 @@ EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
  * Register a new EventListener for the given event.
  * 注册一个指定的事件的事件监听函数
  *
- * @param {String} event Name of the event.
- * @param {Function} fn Callback function.
- * @param {Mixed} [context=this] The context of the function.
- * @api public
+ * @param {String} event Name of the event. 事件名
+ * @param {Function} fn Callback function. 回调函数
+ * @param {Mixed} [context=this] The context of the function. 上下文
+ * @api public 公有API
  */
 EventEmitter.prototype.on = function on(event, fn, context) {
     var listener = new EE(fn, context || this)
         , evt = prefix ? prefix + event : event;
 
     if (!this._events) this._events = prefix ? {} : Object.create(null);
-    if (!this._events[evt]) this._events[evt] = listener;
-    else {
-        if (!this._events[evt].fn) this._events[evt].push(listener);
-        else this._events[evt] = [
-            this._events[evt], listener
-        ];
+    if (!this._events[evt]) {
+        this._events[evt] = listener;//第一次存储为一个事件监听对象
+    } else {
+        if (!this._events[evt].fn) {//第三次及以后则直接向对象数组中添加事件监听对象
+            this._events[evt].push(listener);
+        } else {//第二次将存储的对象与新对象转换为事件监听对象数组
+            this._events[evt] = [
+                this._events[evt], listener
+            ];
+        }
     }
 
     return this;
@@ -195,7 +201,7 @@ EventEmitter.prototype.on = function on(event, fn, context) {
 
 /**
  * Add an EventListener that's only called once.
- * 注册一个只被调用一次的事件监听函数
+ * 注册一个只被调用一次的事件监听函数,与on基本一样,只是参数不同
  *
  * @param {String} event Name of the event.
  * @param {Function} fn Callback function.
@@ -222,11 +228,11 @@ EventEmitter.prototype.once = function once(event, fn, context) {
  * Remove event listeners.
  * 移除事件监听函数
  *
- * @param {String} event The event we want to remove.
- * @param {Function} fn The listener that we need to find.
- * @param {Mixed} context Only remove listeners matching this context.
- * @param {Boolean} once Only remove once listeners.
- * @api public
+ * @param {String} event The event we want to remove. 需要被移除的事件名
+ * @param {Function} fn The listener that we need to find. 需要被移除的事件监听函数
+ * @param {Mixed} context Only remove listeners matching this context. 只移除匹配该参数指定的上下文的监听函数
+ * @param {Boolean} once Only remove once listeners. 只移除匹配该参数指定的once属性的监听函数
+ * @api public 公共API
  */
 EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
     var evt = prefix ? prefix + event : event;
@@ -280,8 +286,11 @@ EventEmitter.prototype.removeListener = function removeListener(event, fn, conte
 EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
     if (!this._events) return this;
 
-    if (event) delete this._events[prefix ? prefix + event : event];
-    else this._events = prefix ? {} : Object.create(null);
+    if (event) {
+        delete this._events[prefix ? prefix + event : event];
+    } else {
+        this._events = prefix ? {} : Object.create(null);
+    }
 
     return this;
 };
